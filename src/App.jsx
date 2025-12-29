@@ -4,7 +4,6 @@ import Login from './Login';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
-// --- Icons ---
 const Icons = {
   Zap: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>,
   Book: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>,
@@ -18,25 +17,18 @@ const Icons = {
 function App() {
   const [session, setSession] = useState(null);
   const [activeTab, setActiveTab] = useState('workbench');
-  
-  // Refactor State
   const [loading, setLoading] = useState(false);
   const [inputCode, setInputCode] = useState(`# Paste your Python code here...`);
   const [resultCode, setResultCode] = useState("");
   const [explanation, setExplanation] = useState("");
-
-  // Knowledge/Files State
   const [githubUrl, setGithubUrl] = useState("");
-  const [filesUrl, setFilesUrl] = useState(""); // Separate URL state for Project Files tab
+  const [filesUrl, setFilesUrl] = useState(""); 
   const [uploadStatus, setUploadStatus] = useState("");
   const [projectFiles, setProjectFiles] = useState([]); 
-
-  // Personalization State
   const [customStyle, setCustomStyle] = useState("");
   const [isStyleSaved, setIsStyleSaved] = useState(true);
   const [useRAG, setUseRAG] = useState(true);
 
-  // --- Auth & Style Loading ---
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -67,7 +59,6 @@ function App() {
     }, 1500);
   };
 
-  // --- LOGIC: Load File to Workbench ---
   const loadFileToWorkbench = (code) => {
       setInputCode(code);
       setActiveTab('workbench');
@@ -75,7 +66,6 @@ function App() {
       setExplanation("");
   };
 
-  // --- TAB 2: Knowledge Base (Training ONLY) ---
   const handleTrainGithub = async () => {
     if (!githubUrl) return;
     setUploadStatus("Training AI on repo...");
@@ -102,7 +92,6 @@ function App() {
     } catch (err) { setUploadStatus("Training failed."); }
   };
 
-  // --- TAB 3: Project Files (Fetching ONLY) ---
   const handleFetchGithubFiles = async () => {
     if (!filesUrl) return;
     setUploadStatus("Fetching files...");
@@ -112,7 +101,6 @@ function App() {
             body: JSON.stringify({ repo_url: filesUrl })
         });
         const data = await res.json();
-        
         if (data.files) {
             setProjectFiles(data.files);
             setUploadStatus(`Found ${data.files.length} files!`);
@@ -140,7 +128,6 @@ function App() {
     } catch (err) { setUploadStatus("Upload failed."); }
   };
 
-  // --- TAB 1: Refactor ---
   const handleRefactor = async () => {
     setLoading(true);
     setResultCode(""); 
@@ -161,10 +148,8 @@ function App() {
 
   return (
     <div className="app-layout">
-      {/* SIDEBAR */}
       <div className="sidebar">
         <div className="brand">Refactorly<span>.ai</span></div>
-        
         <div className={`nav-item ${activeTab === 'workbench' ? 'active' : ''}`} onClick={() => setActiveTab('workbench')}>
             <Icons.Zap /> Workbench
         </div>
@@ -177,16 +162,12 @@ function App() {
         <div className={`nav-item ${activeTab === 'personalization' ? 'active' : ''}`} onClick={() => setActiveTab('personalization')}>
             <Icons.Settings /> Settings
         </div>
-
         <button onClick={() => supabase.auth.signOut()} style={{ marginTop: 'auto', background: 'transparent', border:'1px solid #333', color:'#666', padding:'10px', width:'100%', borderRadius:'8px', cursor:'pointer', fontSize: '0.8rem', transition: 'all 0.2s' }} onMouseEnter={(e) => {e.target.style.borderColor = '#ef4444'; e.target.style.color = '#ef4444'}} onMouseLeave={(e) => {e.target.style.borderColor = '#333'; e.target.style.color = '#666'}}>
             Sign Out
         </button>
       </div>
 
-      {/* MAIN CONTENT AREA */}
       <div className="main-content">
-        
-        {/* VIEW 1: WORKBENCH */}
         {activeTab === 'workbench' && (
             <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                 <div className="top-bar">
@@ -195,18 +176,13 @@ function App() {
                         {loading ? 'Processing...' : 'Refactor Code'}
                     </button>
                 </div>
-
                 <div className="editor-grid" style={{ padding: '1.5rem', flex: 1, minHeight: 0 }}>
                     <div className="editor-window">
                         <div className="window-header">
                             <div className="window-dots"><div className="dot red"></div><div className="dot yellow"></div><div className="dot green"></div></div>
                             <div className="window-title">input.py</div>
                         </div>
-                        <textarea 
-                            value={inputCode} 
-                            onChange={e => setInputCode(e.target.value)} 
-                            placeholder="# Paste code here..."
-                        />
+                        <textarea value={inputCode} onChange={e => setInputCode(e.target.value)} placeholder="# Paste code here..." />
                     </div>
                     <div className="editor-window">
                          <div className="window-header">
@@ -220,50 +196,34 @@ function App() {
                          ) : <div style={{padding:'24px', color:'#333', fontStyle:'italic', fontFamily:'Inter'}}>Waiting for input...</div>}
                     </div>
                 </div>
-                {/* Explanation Panel */}
                 <div style={{ height: '180px', background: '#050505', borderTop: '1px solid var(--glass-border)', padding: '1.5rem', overflowY: 'auto' }}>
                     <div style={{color: '#3b82f6', fontSize: '0.8rem', fontWeight: '600', marginBottom:'8px', textTransform:'uppercase'}}>AI Explanation</div>
-                    <div style={{
-                        color: '#a1a1aa', 
-                        fontSize:'0.9rem', 
-                        lineHeight: '1.6',
-                        whiteSpace: 'pre-wrap'
-                    }}>
+                    <div style={{ color: '#a1a1aa', fontSize:'0.9rem', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
                         {explanation || "Refactor details will appear here after processing."}
                     </div>
                 </div>
             </div>
         )}
 
-        {/* VIEW 2: KNOWLEDGE BASE (Training Only) */}
         {activeTab === 'knowledge' && (
             <div className="fade-in" style={{ padding: '3rem', maxWidth: '800px', margin: '0 auto', width: '100%' }}>
                 <h2 style={{ marginBottom: '0.5rem', fontSize:'1.8rem', letterSpacing:'-0.02em' }}>Knowledge Base</h2>
                 <p style={{ color: '#737373', marginBottom: '2.5rem' }}>Train the AI on your specific coding patterns (RAG).</p>
-                
                 <div className="glass-card">
                     <h3 style={{ marginTop: '0px', marginBottom: '1rem', display:'flex', alignItems:'center', gap:'10px' }}>
                         <Icons.Upload /> Upload Training Data (ZIP)
                     </h3>
                     <input type="file" onChange={handleTrainZip} accept=".zip" style={{ color: '#a1a1aa', fontSize: '0.9rem' }} />
                 </div>
-
                 <div className="glass-card">
                     <h3 style={{ marginTop: '0px', marginBottom: '1rem', display:'flex', alignItems:'center', gap:'10px' }}>
                         <Icons.Github /> Train on GitHub Repo
                     </h3>
                     <div style={{ display: 'flex', gap: '10px' }}>
-                        <input 
-                            type="text" 
-                            placeholder="username/repo" 
-                            value={githubUrl}
-                            onChange={(e) => setGithubUrl(e.target.value)}
-                            style={{ flex: 1, padding: '10px 16px', borderRadius: '6px', border: '1px solid #333', background: 'rgba(0,0,0,0.3)', color: 'white', outline: 'none' }}
-                        />
+                        <input type="text" placeholder="username/repo" value={githubUrl} onChange={(e) => setGithubUrl(e.target.value)} style={{ flex: 1, padding: '10px 16px', borderRadius: '6px', border: '1px solid #333', background: 'rgba(0,0,0,0.3)', color: 'white', outline: 'none' }} />
                         <button className="btn-primary" style={{height:'40px'}} onClick={handleTrainGithub}>Train AI</button>
                     </div>
                 </div>
-
                 {uploadStatus && (
                     <div style={{ padding: '1rem', background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.2)', borderRadius: '6px', color: '#4ade80', fontSize: '0.9rem' }}>
                         {uploadStatus}
@@ -272,42 +232,30 @@ function App() {
             </div>
         )}
 
-        {/* VIEW 3: PROJECT FILES (Fetching Only) */}
         {activeTab === 'files' && (
             <div className="fade-in" style={{ padding: '3rem', maxWidth: '800px', margin: '0 auto', width: '100%', overflowY: 'auto', height: '100vh' }}>
                 <h2 style={{ marginBottom: '0.5rem', fontSize:'1.8rem', letterSpacing:'-0.02em' }}>Project Files</h2>
                 <p style={{ color: '#737373', marginBottom: '2.5rem' }}>Browse files and load them into the workbench.</p>
-                
                 <div className="glass-card">
                     <h3 style={{ marginTop: '0px', marginBottom: '1rem', display:'flex', alignItems:'center', gap:'10px' }}>
                         <Icons.Upload /> Open Project (ZIP)
                     </h3>
                     <input type="file" onChange={handleFetchZipFiles} accept=".zip" style={{ color: '#a1a1aa', fontSize: '0.9rem' }} />
                 </div>
-
                 <div className="glass-card">
                     <h3 style={{ marginTop: '0px', marginBottom: '1rem', display:'flex', alignItems:'center', gap:'10px' }}>
                         <Icons.Github /> Open GitHub Repo
                     </h3>
                     <div style={{ display: 'flex', gap: '10px' }}>
-                        <input 
-                            type="text" 
-                            placeholder="username/repo" 
-                            value={filesUrl}
-                            onChange={(e) => setFilesUrl(e.target.value)}
-                            style={{ flex: 1, padding: '10px 16px', borderRadius: '6px', border: '1px solid #333', background: 'rgba(0,0,0,0.3)', color: 'white', outline: 'none' }}
-                        />
+                        <input type="text" placeholder="username/repo" value={filesUrl} onChange={(e) => setFilesUrl(e.target.value)} style={{ flex: 1, padding: '10px 16px', borderRadius: '6px', border: '1px solid #333', background: 'rgba(0,0,0,0.3)', color: 'white', outline: 'none' }} />
                         <button className="btn-primary" style={{height:'40px'}} onClick={handleFetchGithubFiles}>Fetch Files</button>
                     </div>
                 </div>
-
                 {uploadStatus && (
                      <div style={{ padding: '1rem', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', borderRadius: '6px', color: '#60a5fa', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
                         {uploadStatus}
                     </div>
                 )}
-
-                {/* PROJECT EXPLORER */}
                 {projectFiles.length > 0 && (
                     <div style={{ marginTop: '2rem' }}>
                         <h3 style={{ marginBottom: '1rem', fontSize:'1.2rem' }}>📂 Explorer</h3>
@@ -315,16 +263,7 @@ function App() {
                             {projectFiles.map((file, idx) => (
                                 <div key={idx} onClick={() => loadFileToWorkbench(file.content)}
                                     className="glass-card"
-                                    style={{ 
-                                        padding: '1rem', 
-                                        cursor: 'pointer', 
-                                        display:'flex', 
-                                        alignItems:'center', 
-                                        gap:'10px',
-                                        border: '1px solid #333',
-                                        transition: 'all 0.2s',
-                                        marginBottom: 0
-                                    }}
+                                    style={{ padding: '1rem', cursor: 'pointer', display:'flex', alignItems:'center', gap:'10px', border: '1px solid #333', transition: 'all 0.2s', marginBottom: 0 }}
                                     onMouseOver={e => {e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.transform = 'translateY(-2px)'}}
                                     onMouseOut={e => {e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.transform = 'translateY(0)'}}
                                 >
@@ -340,12 +279,10 @@ function App() {
             </div>
         )}
 
-        {/* VIEW 4: SETTINGS */}
         {activeTab === 'personalization' && (
             <div className="fade-in" style={{ padding: '3rem', maxWidth: '800px', margin: '0 auto', width: '100%' }}>
                 <h2 style={{ marginBottom: '0.5rem', fontSize:'1.8rem', letterSpacing:'-0.02em' }}>Settings</h2>
                 <p style={{ color: '#737373', marginBottom: '2.5rem' }}>Customize how the AI interprets your code.</p>
-                
                 <div className="glass-card" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
                     <div>
                         <h3 style={{fontSize:'1rem', marginBottom:'4px', marginTop:'0px'}}>RAG (Context Awareness)</h3>
@@ -357,44 +294,14 @@ function App() {
                         <span style={{position:'absolute', height:'18px', width:'18px', left:'3px', bottom:'3px', background:'white', borderRadius:'50%', transition:'.4s', transform: useRAG ? 'translateX(22px)' : 'translateX(0)'}}></span>
                     </label>
                 </div>
-
                 <div className="glass-card" style={{ padding: '1.25rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', alignItems: 'center' }}>
                         <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600 }}>Manual Style Rules</h3>
-                        <span style={{ 
-                            fontSize: '0.7rem', 
-                            fontWeight: 600, 
-                            color: isStyleSaved ? '#4ade80' : '#facc15', 
-                            background: isStyleSaved ? 'rgba(74, 222, 128, 0.1)' : 'rgba(250, 204, 21, 0.1)', 
-                            padding: '2px 8px', 
-                            borderRadius: '4px',
-                            letterSpacing: '0.05em'
-                        }}>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 600, color: isStyleSaved ? '#4ade80' : '#facc15', background: isStyleSaved ? 'rgba(74, 222, 128, 0.1)' : 'rgba(250, 204, 21, 0.1)', padding: '2px 8px', borderRadius: '4px', letterSpacing: '0.05em' }}>
                             {isStyleSaved ? 'SYNCED' : 'SAVING...'}
                         </span>
                     </div>
-
-                    <textarea 
-                        value={customStyle}
-                        onChange={handleStyleChange}
-                        placeholder="Ex: Always use snake_case. Add comments for every function..."
-                        spellCheck="false"
-                        style={{
-                            width: '96.5%', 
-                            height: '140px', 
-                            background: 'rgba(0,0,0,0.4)', 
-                            border: '1px solid #333', 
-                            color: '#e4e4e7',
-                            borderRadius: '8px', 
-                            padding: '12px', 
-                            fontSize: '0.85rem',
-                            resize: 'none',
-                            outline: 'none',
-                            transition: 'border-color 0.2s'
-                        }}
-                        onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-                        onBlur={(e) => e.target.style.borderColor = '#333'}
-                    />
+                    <textarea value={customStyle} onChange={handleStyleChange} placeholder="Ex: Always use snake_case. Add comments for every function..." spellCheck="false" style={{ width: '100%', height: '140px', background: 'rgba(0,0,0,0.4)', border: '1px solid #333', color: '#e4e4e7', borderRadius: '8px', padding: '12px', fontSize: '0.85rem', resize: 'none', outline: 'none', transition: 'border-color 0.2s' }} onFocus={(e) => e.target.style.borderColor = '#3b82f6'} onBlur={(e) => e.target.style.borderColor = '#333'} />
                 </div>
             </div>
         )}

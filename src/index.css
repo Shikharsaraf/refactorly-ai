@@ -1,21 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
-  /* Core Colors */
   --bg-deep: #030303;
   --bg-subtle: #0a0a0a;
-  
-  /* Glass & Borders */
   --glass-bg: rgba(20, 20, 20, 0.6);
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-highlight: rgba(255, 255, 255, 0.03);
-  
-  /* Brand */
   --accent-glow: rgba(59, 130, 246, 0.5);
   --accent-primary: #3b82f6;
   --accent-gradient: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-  
-  /* Text */
   --text-main: #ededed;
   --text-muted: #737373;
 }
@@ -27,21 +20,18 @@ body {
   font-family: 'Inter', sans-serif;
   height: 100vh;
   overflow: hidden;
-  /* subtle mesh background texture */
   background-image: 
     radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.08), transparent 25%),
     radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.08), transparent 25%);
 }
 
-/* --- Layout --- */
 .app-layout {
   display: flex;
   height: 100vh;
   width: 100vw;
-  backdrop-filter: blur(100px); /* Cleanup for mesh */
+  backdrop-filter: blur(100px);
 }
 
-/* --- Sidebar --- */
 .sidebar {
   width: 260px;
   background: var(--glass-bg);
@@ -98,7 +88,6 @@ body {
   box-shadow: 0 0 15px rgba(59, 130, 246, 0.1);
 }
 
-/* --- Main Content --- */
 .main-content {
   flex: 1;
   display: flex;
@@ -118,7 +107,6 @@ body {
   backdrop-filter: blur(10px);
 }
 
-/* --- Modern Buttons --- */
 .btn-primary {
   background: var(--accent-gradient);
   color: white;
@@ -150,7 +138,6 @@ body {
   cursor: not-allowed;
 }
 
-/* --- The Editor Grid (Glass Cards) --- */
 .editor-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -184,12 +171,12 @@ body {
   gap: 10px;
 }
 
-/* Mac-style dots */
 .window-dots {
   display: flex;
   gap: 6px;
   margin-right: 12px;
 }
+
 .dot { width: 10px; height: 10px; border-radius: 50%; }
 .red { background: #ef4444; }
 .yellow { background: #f59e0b; }
@@ -203,45 +190,43 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
+
 textarea {
   flex: 1;
   background: transparent;
   border: none;
-  /* FIXED: Reduced padding significantly */
   padding: 1rem; 
   color: #e4e4e7;
   font-family: 'JetBrains Mono', monospace;
   font-size: 13px;
-  line-height: 1.5; /* Tighter line height */
+  line-height: 1.5;
   resize: none;
   outline: none;
-  width: 96.5%; /* Ensure it fills the container */
+  width: 96.5%;
 }
 
-/* --- Knowledge Base & Settings (Cards) --- */
-/* index.css */
 .glass-card {
   background: rgba(20, 20, 20, 0.4);
   border: 1px solid var(--glass-border);
   border-radius: 12px;
-  
   padding: 1.5rem; 
-  
   margin-bottom: 1.5rem;
   transition: transform 0.2s, border-color 0.2s;
 }
+
 textarea::-webkit-scrollbar {
   width: 8px;
 }
+
 textarea::-webkit-scrollbar-thumb {
   background: #333;
   border-radius: 4px;
 }
+
 .glass-card:hover {
   border-color: rgba(255, 255, 255, 0.15);
 }
 
-/* --- Animations --- */
 .fade-in {
   animation: fadeIn 0.4s ease-out forwards;
 }
@@ -251,7 +236,6 @@ textarea::-webkit-scrollbar-thumb {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Scrollbar styling */
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #262626; border-radius: 4px; }

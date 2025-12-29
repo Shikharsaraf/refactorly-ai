@@ -41,11 +41,8 @@ class RefactorRequest(BaseModel):
 class GitHubRequest(BaseModel):
     repo_url: str
 
-# --- 1. GITHUB ENDPOINTS (These were missing!) ---
-
 @app.post("/ingest-github")
 async def ingest_github(request: GitHubRequest):
-    """Trains the AI (RAG) on the repo."""
     try:
         parts = request.repo_url.rstrip("/").split("/")
         if len(parts) < 2: return {"error": "Invalid GitHub URL"}
@@ -78,7 +75,6 @@ async def ingest_github(request: GitHubRequest):
 
 @app.post("/fetch-github-files")
 async def fetch_github_files(request: GitHubRequest):
-    """Fetches actual code to display in the Project Explorer."""
     try:
         parts = request.repo_url.rstrip("/").split("/")
         if len(parts) < 2: return {"error": "Invalid URL"}
@@ -101,11 +97,8 @@ async def fetch_github_files(request: GitHubRequest):
     except Exception as e:
         return {"error": str(e)}
 
-# --- 2. ZIP ENDPOINTS (These were also missing!) ---
-
 @app.post("/upload-knowledge")
 async def upload_knowledge(file: UploadFile = File(...)):
-    """Trains AI on ZIP."""
     temp_filename = f"temp_{file.filename}"
     extract_path = "temp_extracted"
     try:
@@ -134,7 +127,6 @@ async def upload_knowledge(file: UploadFile = File(...)):
 
 @app.post("/fetch-zip-files")
 async def fetch_zip_files(file: UploadFile = File(...)):
-    """Fetches code from ZIP for Project Explorer."""
     temp_filename = f"temp_view_{file.filename}"
     extract_path = "temp_view_extracted"
     file_list = []
@@ -154,7 +146,6 @@ async def fetch_zip_files(file: UploadFile = File(...)):
                             file_list.append({"name": file_name, "content": f.read()})
                     except: continue
                     
-        # Cleanup
         if os.path.exists(temp_filename): os.remove(temp_filename)
         if os.path.exists(extract_path): shutil.rmtree(extract_path)
         
@@ -162,8 +153,6 @@ async def fetch_zip_files(file: UploadFile = File(...)):
         
     except Exception as e:
         return {"error": str(e)}
-
-# --- 3. REFACTOR ENDPOINT (Existing) ---
 
 @app.post("/refactor")
 async def refactor_code(request: RefactorRequest):
@@ -217,12 +206,9 @@ async def refactor_code(request: RefactorRequest):
         if "<<SPLIT>>" in full_text:
             parts = full_text.split("<<SPLIT>>")
             
-            # 1. Clean Code
             refactored_code = parts[0].strip().replace("```python", "").replace("```", "").strip()
             
-            # 2. Clean Explanation (Force Spacing)
             raw_explanation = parts[1].strip().replace("**", "")
-            # This logic adds a double newline before every bullet point (*) or (-)
             explanation = raw_explanation.replace("\n*", "\n\n*").replace("\n-", "\n\n-")
 
         return {"refactored_code": refactored_code, "explanation": explanation}

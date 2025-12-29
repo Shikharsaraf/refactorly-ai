@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from './supabaseClient'; // Make sure you have this file set up
+import { supabase } from './supabaseClient';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -8,7 +8,6 @@ export default function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
-    // Uses Magic Link (No passwords needed)
     const { error } = await supabase.auth.signInWithOtp({ email });
     if (error) {
       alert(error.message);
