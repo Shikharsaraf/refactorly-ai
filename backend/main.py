@@ -182,6 +182,9 @@ async def refactor_code(request: RefactorRequest):
     prompt_parts = [
         f"You are an expert Senior {target_language.capitalize()} Developer. Refactor the following code.",
         f"Strictly follow idiomatic {target_language} patterns and best practices.",
+        f"TASK: Refactor the provided {target_language.upper()} code.",
+        f"CRITICAL RULE: DO NOT change the programming language. If the input is {target_language}, the output MUST be {target_language}.",
+        "Focus on: Code efficiency, naming conventions, and modern syntax standards.",
         style_context,
         "\nRULES:",
         "1. Output strictly in the requested format.",
