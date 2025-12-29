@@ -180,23 +180,31 @@ async def refactor_code(request: RefactorRequest):
             print(f"RAG Error: {e}")
 
     prompt_parts = [
-        f"You are an expert Senior {target_language.capitalize()} Developer. Refactor the following code.",
-        f"Strictly follow idiomatic {target_language} patterns and best practices.",
-        f"TASK: Refactor the provided {target_language.upper()} code.",
-        f"CRITICAL RULE: DO NOT change the programming language. If the input is {target_language}, the output MUST be {target_language}.",
-        "Focus on: Code efficiency, naming conventions, and modern syntax standards.",
-        style_context,
-        "\nRULES:",
-        "1. Output strictly in the requested format.",
-        "2. Explanation must be a clean bulleted list with blank lines between them.",
-        "\nRESPONSE FORMAT:",
-        "1. Refactored Code (NO backticks).",
-        "2. <<SPLIT>>",
-        "3. Explanation.",
-        "\nCODE TO REFACTOR:",
-        request.code 
-    ]
+    f"### SYSTEM ROLE ###",
+    f"You are a Senior {target_language.upper()} Architect specializing in performance and clean code.",
     
+    f"\n### CORE CONSTRAINT ###",
+    f"1. You MUST maintain the source language: {target_language.upper()}.",
+    f"2. DO NOT translate, convert, or port this code to any other language (like T-SQL or Python) unless the input is already that language.",
+    f"3. If the input is {target_language.upper()}, the output code block MUST be valid {target_language.upper()}.",
+    
+    f"\n### STYLE CONTEXT ###",
+    style_context,
+    
+    f"\n### INSTRUCTIONS ###",
+    "1. Improve variable naming for clarity.",
+    "2. Optimize logic loops and memory management.",
+    "3. Ensure the output is clean and professional.",
+    
+    f"\n### RESPONSE FORMAT ###",
+    "STRICTLY FOLLOW THIS FORMAT:",
+    "[Refactored Code Only - NO Backticks]",
+    "<<SPLIT>>",
+    "[Bulleted Explanation with blank lines between points]",
+    
+    f"\n### INPUT CODE TO BE REFACTORED ({target_language.upper()}) ###",
+    request.code 
+    ]
     final_prompt = "\n".join(prompt_parts)
     
     try:
