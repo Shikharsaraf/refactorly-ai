@@ -233,7 +233,7 @@ function App() {
         )}
 
         {activeTab === 'files' && (
-            <div className="fade-in" style={{ padding: '3rem', maxWidth: '800px', margin: '0 auto', width: '100%', overflowY: 'auto', height: '100vh' }}>
+            <div className="fade-in" style={{ padding: '3rem', maxWidth: '800px', margin: '0 auto', width: '96.5%', overflowY: 'auto', height: '100vh' }}>
                 <h2 style={{ marginBottom: '0.5rem', fontSize:'1.8rem', letterSpacing:'-0.02em' }}>Project Files</h2>
                 <p style={{ color: '#737373', marginBottom: '2.5rem' }}>Browse files and load them into the workbench.</p>
                 <div className="glass-card">
