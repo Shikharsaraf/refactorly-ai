@@ -14,11 +14,20 @@ const Icons = {
   Folder: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
 };
 
+const SUPPORTED_LANGUAGES = [
+  { label: 'Auto Detect', value: 'auto' },
+  { label: 'Python', value: 'python' },
+  { label: 'JavaScript', value: 'javascript' },
+  { label: 'Java', value: 'java' },
+  { label: 'C++', value: 'cpp' },
+  { label: 'Go', value: 'go' }
+];
+
 function App() {
   const [session, setSession] = useState(null);
   const [activeTab, setActiveTab] = useState('workbench');
   const [loading, setLoading] = useState(false);
-  const [inputCode, setInputCode] = useState(`# Paste your Python code here...`);
+  const [inputCode, setInputCode] = useState("");
   const [resultCode, setResultCode] = useState("");
   const [explanation, setExplanation] = useState("");
   const [githubUrl, setGithubUrl] = useState("");
@@ -29,6 +38,7 @@ function App() {
   const [isStyleSaved, setIsStyleSaved] = useState(true);
   const [useRAG, setUseRAG] = useState(true);
   const [detectedLang, setDetectedLang] = useState("");
+  const [selectedLang, setSelectedLang] = useState('auto');
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -144,7 +154,7 @@ function App() {
             custom_style: customStyle, 
             use_personalization: useRAG, 
             user_id: session?.user?.id,
-            language: "auto"
+            language: selectedLang
         }), 
       });
       const data = await response.json();
@@ -192,15 +202,43 @@ function App() {
                     <div className="editor-window">
                         <div className="window-header">
                             <div className="window-dots"><div className="dot red"></div><div className="dot yellow"></div><div className="dot green"></div></div>
-                            <div className="window-title">input.py</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', justifyContent: 'space-between' }}>
+                              <div className="window-title">
+                                SOURCE.{selectedLang === 'auto' ? (detectedLang || 'CODE').toUpperCase() : selectedLang.toUpperCase()}
+                              </div>
+                              <select 
+                                value={selectedLang} 
+                                onChange={(e) => setSelectedLang(e.target.value)}
+                                style={{
+                                  background: '#18181b',
+                                  color: '#a1a1aa',
+                                  border: '1px solid #27272a',
+                                  borderRadius: '4px',
+                                  fontSize: '10px',
+                                  padding: '2px 4px',
+                                  outline: 'none',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                {SUPPORTED_LANGUAGES.map(lang => (
+                                  <option key={lang.value} value={lang.value}>{lang.label}</option>
+                                ))}
+                              </select>
+                            </div>
                         </div>
-                        <textarea value={inputCode} onChange={e => setInputCode(e.target.value)} placeholder="# Paste code here..." />
+                        <textarea 
+                          value={inputCode} 
+                          onChange={e => setInputCode(e.target.value)} 
+                          placeholder={`Paste your ${selectedLang !== 'auto' ? selectedLang : 'code'} here...`} 
+                        />
                     </div>
                     <div className="editor-window">
                          <div className="window-header">
                             <div className="window-dots"><div className="dot red"></div><div className="dot yellow"></div><div className="dot green"></div></div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <div className="window-title">output.py</div>
+                                <div className="window-title">
+                                  REFACTORED.{detectedLang ? detectedLang.toUpperCase() : 'CODE'}
+                                </div>
                                 {detectedLang && (
                                     <span style={{ fontSize: '10px', background: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa', padding: '2px 8px', borderRadius: '10px', border: '1px solid rgba(59, 130, 246, 0.3)', textTransform: 'uppercase', fontWeight: 'bold' }}>
                                         {detectedLang}
