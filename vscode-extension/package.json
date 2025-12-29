@@ -1,0 +1,36 @@
+{
+  "name": "refactorly-vscode",
+  "displayName": "Refactorly AI",
+  "publisher": "shikhar",
+  "description": "Refactor code using your personal AI style",
+  "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Shikharsaraf/refactorly-ai"
+  },
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "refactorly.fixCode",
+        "title": "Refactorly: Fix this Code"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "refactorly.fixCode",
+          "group": "modification",
+          "when": "editorHasSelection"
+        }
+      ]
+    }
+  }
+}

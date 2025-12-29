@@ -1,244 +1,403 @@
-import { useState, useRef } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from './supabaseClient'; 
+import Login from './Login';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
+// --- Icons ---
+const Icons = {
+  Zap: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>,
+  Book: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>,
+  Settings: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>,
+  Upload: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>,
+  Github: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>,
+  File: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>,
+  Folder: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+};
+
 function App() {
+  const [session, setSession] = useState(null);
+  const [activeTab, setActiveTab] = useState('workbench');
+  
+  // Refactor State
   const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [inputCode, setInputCode] = useState(`# Paste your Python code here...`);
   const [resultCode, setResultCode] = useState("");
   const [explanation, setExplanation] = useState("");
-  const [inputCode, setInputCode] = useState(`# Paste your Python code here...`);
-  const [usePersonalization, setUsePersonalization] = useState(false);
-  const [statusMsg, setStatusMsg] = useState(""); 
-  
-  const [showGithubModal, setShowGithubModal] = useState(false);
+
+  // Knowledge/Files State
   const [githubUrl, setGithubUrl] = useState("");
+  const [filesUrl, setFilesUrl] = useState(""); // Separate URL state for Project Files tab
+  const [uploadStatus, setUploadStatus] = useState("");
+  const [projectFiles, setProjectFiles] = useState([]); 
 
-  const fileInputRef = useRef(null);
+  // Personalization State
+  const [customStyle, setCustomStyle] = useState("");
+  const [isStyleSaved, setIsStyleSaved] = useState(true);
+  const [useRAG, setUseRAG] = useState(true);
 
-  const handleFileUpload = async (event) => {
-    const file = event.target.files[0];
+  // --- Auth & Style Loading ---
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session) fetchUserStyle(session.user.id);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session) fetchUserStyle(session.user.id);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const fetchUserStyle = async (userId) => {
+    const { data } = await supabase.from('user_styles').select('style_rules').eq('user_id', userId).single();
+    if (data) setCustomStyle(data.style_rules || "");
+  };
+
+  const handleStyleChange = async (e) => {
+    const newStyle = e.target.value;
+    setCustomStyle(newStyle);
+    setIsStyleSaved(false);
+    clearTimeout(window.saveTimeout);
+    window.saveTimeout = setTimeout(async () => {
+      if (session) {
+        await supabase.from('user_styles').upsert({ user_id: session.user.id, style_rules: newStyle });
+        setIsStyleSaved(true);
+      }
+    }, 1500);
+  };
+
+  // --- LOGIC: Load File to Workbench ---
+  const loadFileToWorkbench = (code) => {
+      setInputCode(code);
+      setActiveTab('workbench');
+      setResultCode(""); 
+      setExplanation("");
+  };
+
+  // --- TAB 2: Knowledge Base (Training ONLY) ---
+  const handleTrainGithub = async () => {
+    if (!githubUrl) return;
+    setUploadStatus("Training AI on repo...");
+    try {
+        const res = await fetch("http://localhost:8000/ingest-github", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ repo_url: githubUrl })
+        });
+        const data = await res.json();
+        setUploadStatus(data.message || data.error);
+    } catch (err) { setUploadStatus("Training failed."); }
+  };
+
+  const handleTrainZip = async (e) => {
+    const file = e.target.files[0];
     if (!file) return;
-    setUploading(true);
-    setStatusMsg("Uploading...");
-    
+    setUploadStatus("Training AI on ZIP...");
     const formData = new FormData();
     formData.append("file", file);
-
     try {
-      const response = await fetch("http://localhost:8000/upload-knowledge", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await response.json();
-      setStatusMsg("Learned from ZIP!");
-    } catch (error) {
-      console.error(error);
-      setStatusMsg("Upload Failed");
-    } finally {
-      setUploading(false);
-      setTimeout(() => setStatusMsg(""), 3000);
-    }
+        const res = await fetch("http://localhost:8000/upload-knowledge", { method: "POST", body: formData });
+        const data = await res.json();
+        setUploadStatus(data.message || "Training success!");
+    } catch (err) { setUploadStatus("Training failed."); }
   };
 
-  const handleGithubSync = async () => {
-    if (!githubUrl) return;
-    setUploading(true);
-    setStatusMsg("Syncing GitHub...");
-    setShowGithubModal(false);
-
+  // --- TAB 3: Project Files (Fetching ONLY) ---
+  const handleFetchGithubFiles = async () => {
+    if (!filesUrl) return;
+    setUploadStatus("Fetching files...");
     try {
-      const response = await fetch("http://localhost:8000/ingest-github", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ repo_url: githubUrl }), 
-      });
-      const data = await response.json();
-      setStatusMsg(data.message || "Synced Repo!");
-    } catch (error) {
-      setStatusMsg("GitHub Sync Failed");
-    } finally {
-      setUploading(false);
-      setTimeout(() => setStatusMsg(""), 3000);
-    }
+        const res = await fetch("http://localhost:8000/fetch-github-files", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ repo_url: filesUrl })
+        });
+        const data = await res.json();
+        
+        if (data.files) {
+            setProjectFiles(data.files);
+            setUploadStatus(`Found ${data.files.length} files!`);
+        } else {
+            setUploadStatus("No code files found.");
+        }
+    } catch (err) { setUploadStatus("Fetch failed."); }
   };
 
+  const handleFetchZipFiles = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadStatus("Unzipping for view...");
+    const formData = new FormData();
+    formData.append("file", file);
+    try {
+        const res = await fetch("http://localhost:8000/fetch-zip-files", { method: "POST", body: formData });
+        const data = await res.json();
+        if (data.files) {
+            setProjectFiles(data.files);
+            setUploadStatus(`Unzipped ${data.files.length} files!`);
+        } else {
+            setUploadStatus("Error reading zip.");
+        }
+    } catch (err) { setUploadStatus("Upload failed."); }
+  };
+
+  // --- TAB 1: Refactor ---
   const handleRefactor = async () => {
     setLoading(true);
     setResultCode(""); 
     setExplanation("");
-    
     try {
       const response = await fetch("http://localhost:8000/refactor", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          code: inputCode,
-          use_personalization: usePersonalization 
-        }), 
+        body: JSON.stringify({ code: inputCode, custom_style: customStyle, use_personalization: useRAG, user_id: session?.user?.id }), 
       });
       const data = await response.json();
       setResultCode(data.refactored_code);
       setExplanation(data.explanation);
-    } catch (error) {
-      setExplanation("Error: Check Backend Connection");
-    } finally {
-      setLoading(false);
-    }
+    } catch (error) { setExplanation("Error: Check Backend Connection"); } finally { setLoading(false); }
   };
+
+  if (!session) return <Login />;
 
   return (
     <div className="app-layout">
+      {/* SIDEBAR */}
       <div className="sidebar">
-        <div className="brand">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{color:'#2563eb', marginRight: 10}}>
-            <polyline points="16 18 22 12 16 6"></polyline>
-            <polyline points="8 6 2 12 8 18"></polyline>
-          </svg>
-          Refactorly
-        </div>
-<div className="nav-item active" style={{ display: 'flex', alignItems: 'center' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '10px' }}>
-            <rect x="3" y="3" width="7" height="7"></rect>
-            <rect x="14" y="3" width="7" height="7"></rect>
-            <rect x="14" y="14" width="7" height="7"></rect>
-            <rect x="3" y="14" width="7" height="7"></rect>
-          </svg>
-          Dashboard
-        </div>
-        <div className="nav-item" onClick={() => fileInputRef.current.click()} style={{ display: 'flex', alignItems: 'center' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '10px' }}>
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="17 8 12 3 7 8"></polyline>
-            <line x1="12" y1="3" x2="12" y2="15"></line>
-          </svg>
-          Upload ZIP
-        </div>
-        <input type="file" ref={fileInputRef} style={{display:'none'}} onChange={handleFileUpload} accept=".zip"/>
+        <div className="brand">Refactorly<span>.ai</span></div>
         
-        {statusMsg && <div style={{fontSize:'0.8rem', color:'#22c55e', padding:'10px'}}>{statusMsg}</div>}
+        <div className={`nav-item ${activeTab === 'workbench' ? 'active' : ''}`} onClick={() => setActiveTab('workbench')}>
+            <Icons.Zap /> Workbench
+        </div>
+        <div className={`nav-item ${activeTab === 'knowledge' ? 'active' : ''}`} onClick={() => setActiveTab('knowledge')}>
+            <Icons.Book /> Knowledge Base
+        </div>
+        <div className={`nav-item ${activeTab === 'files' ? 'active' : ''}`} onClick={() => setActiveTab('files')}>
+            <Icons.Folder /> Project Files
+        </div>
+        <div className={`nav-item ${activeTab === 'personalization' ? 'active' : ''}`} onClick={() => setActiveTab('personalization')}>
+            <Icons.Settings /> Settings
+        </div>
+
+        <button onClick={() => supabase.auth.signOut()} style={{ marginTop: 'auto', background: 'transparent', border:'1px solid #333', color:'#666', padding:'10px', width:'100%', borderRadius:'8px', cursor:'pointer', fontSize: '0.8rem', transition: 'all 0.2s' }} onMouseEnter={(e) => {e.target.style.borderColor = '#ef4444'; e.target.style.color = '#ef4444'}} onMouseLeave={(e) => {e.target.style.borderColor = '#333'; e.target.style.color = '#666'}}>
+            Sign Out
+        </button>
       </div>
 
-      <div className="main-content" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+      {/* MAIN CONTENT AREA */}
+      <div className="main-content">
         
-        <div className="top-bar" style={{ flexShrink: 0 }}>
-          <div className="breadcrumbs">Workbench</div>
-          <button className="github-btn" onClick={() => setShowGithubModal(true)} style={{ display: 'flex', alignItems: 'center' }}>
-            <svg viewBox="0 0 16 16" fill="currentColor" style={{ width: '16px', height: '16px', marginRight: '8px' }}>
-                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0016 8c0-4.42-3.58-8-8-8z" />
-            </svg>
-            Sync GitHub
-          </button>
-        </div>
+        {/* VIEW 1: WORKBENCH */}
+        {activeTab === 'workbench' && (
+            <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                <div className="top-bar">
+                    <div style={{color: '#737373', fontSize: '0.9rem'}}>project / <span style={{color:'white'}}>workbench</span></div>
+                    <button className="btn-primary" onClick={handleRefactor} disabled={loading}>
+                        {loading ? 'Processing...' : 'Refactor Code'}
+                    </button>
+                </div>
 
-        {showGithubModal && (
-          <div style={{
-            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-            background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99
-          }}>
-            <div style={{ background: '#09090b', padding: '2rem', borderRadius: '8px', border: '1px solid #27272a', width: '400px' }}>
-              <h3 style={{ margin: '0 0 1rem 0' }}>Sync Public Repo</h3>
-              <input 
-                type="text" 
-                placeholder="https://github.com/username/repo" 
-                value={githubUrl}
-                onChange={(e) => setGithubUrl(e.target.value)}
-                style={{ width: '100%', padding: '10px', background: '#18181b', border: '1px solid #27272a', color: 'white', marginBottom: '1rem' }}
-              />
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button className="btn-primary" onClick={handleGithubSync} style={{ marginTop: 0 }}>Sync Now</button>
-                <button onClick={() => setShowGithubModal(false)} style={{ background: 'transparent', border: '1px solid #27272a', color: 'white', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer' }}>Cancel</button>
-              </div>
+                <div className="editor-grid" style={{ padding: '1.5rem', flex: 1, minHeight: 0 }}>
+                    <div className="editor-window">
+                        <div className="window-header">
+                            <div className="window-dots"><div className="dot red"></div><div className="dot yellow"></div><div className="dot green"></div></div>
+                            <div className="window-title">input.py</div>
+                        </div>
+                        <textarea 
+                            value={inputCode} 
+                            onChange={e => setInputCode(e.target.value)} 
+                            placeholder="# Paste code here..."
+                        />
+                    </div>
+                    <div className="editor-window">
+                         <div className="window-header">
+                            <div className="window-dots"><div className="dot red"></div><div className="dot yellow"></div><div className="dot green"></div></div>
+                            <div className="window-title">output.py</div>
+                         </div>
+                         {resultCode ? (
+                            <SyntaxHighlighter language="python" style={vscDarkPlus} customStyle={{margin:0, height:'100%', background: 'transparent', fontSize:'13px'}}>
+                              {resultCode}
+                            </SyntaxHighlighter>
+                         ) : <div style={{padding:'24px', color:'#333', fontStyle:'italic', fontFamily:'Inter'}}>Waiting for input...</div>}
+                    </div>
+                </div>
+                {/* Explanation Panel */}
+                <div style={{ height: '180px', background: '#050505', borderTop: '1px solid var(--glass-border)', padding: '1.5rem', overflowY: 'auto' }}>
+                    <div style={{color: '#3b82f6', fontSize: '0.8rem', fontWeight: '600', marginBottom:'8px', textTransform:'uppercase'}}>AI Explanation</div>
+                    <div style={{
+                        color: '#a1a1aa', 
+                        fontSize:'0.9rem', 
+                        lineHeight: '1.6',
+                        whiteSpace: 'pre-wrap'
+                    }}>
+                        {explanation || "Refactor details will appear here after processing."}
+                    </div>
+                </div>
             </div>
-          </div>
         )}
 
-        <div className="dashboard-container" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', padding: '1.5rem' }}>
-          
-          <div className="editor-grid" style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', 
-            gap: '1.5rem', 
-            flex: 1, 
-            minHeight: 0, 
-            marginBottom: '1.5rem' 
-          }}>
-            
-            <div className="editor-window" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', minWidth: 0 }}>
-              <div className="window-header" style={{ flexShrink: 0 }}>
-                <span>Input</span>
-                <div style={{display:'flex', gap:'10px', alignItems:'center'}}>
-                   <span style={{fontSize:'0.7rem', color: usePersonalization ? '#2563eb':'#555'}}>PERSONALIZATION</span>
-                   <input type="checkbox" checked={usePersonalization} onChange={e => setUsePersonalization(e.target.checked)}/>
+        {/* VIEW 2: KNOWLEDGE BASE (Training Only) */}
+        {activeTab === 'knowledge' && (
+            <div className="fade-in" style={{ padding: '3rem', maxWidth: '800px', margin: '0 auto', width: '100%' }}>
+                <h2 style={{ marginBottom: '0.5rem', fontSize:'1.8rem', letterSpacing:'-0.02em' }}>Knowledge Base</h2>
+                <p style={{ color: '#737373', marginBottom: '2.5rem' }}>Train the AI on your specific coding patterns (RAG).</p>
+                
+                <div className="glass-card">
+                    <h3 style={{ marginTop: '0px', marginBottom: '1rem', display:'flex', alignItems:'center', gap:'10px' }}>
+                        <Icons.Upload /> Upload Training Data (ZIP)
+                    </h3>
+                    <input type="file" onChange={handleTrainZip} accept=".zip" style={{ color: '#a1a1aa', fontSize: '0.9rem' }} />
                 </div>
-              </div>
-              <textarea 
-                value={inputCode} 
-                onChange={e => setInputCode(e.target.value)} 
-                spellCheck="false"
-                style={{ 
-                  flex: 1, 
-                  resize: 'none', 
-                  padding: '1rem', 
-                  background: 'transparent', 
-                  color: '#e4e4e7', 
-                  border: 'none', 
-                  outline: 'none',
-                  whiteSpace: 'pre', 
-                  overflowX: 'auto', 
-                  overflowY: 'auto'
-                }} 
-              />
-            </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: '100%', minHeight: 0, minWidth: 0 }}>
-              
-              <div className="editor-window" style={{ flex: '6', minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <div className="window-header" style={{ flexShrink: 0 }}><span>Output</span></div>
-                <div style={{ flex: 1, overflow: 'auto' }}> 
-                  {resultCode ? (
-                    <SyntaxHighlighter 
-                      language="python" 
-                      style={vscDarkPlus} 
-                      customStyle={{ 
-                        margin: 0, 
-                        padding: '1rem', 
-                        minHeight: '100%', 
-                        fontSize: '14px',
-                        width: 'fit-content', 
-                        minWidth: '100%'      
-                      }}
-                    >
-                      {resultCode}
-                    </SyntaxHighlighter>
-                  ) : <div style={{padding:'20px', color:'#555'}}>Ready...</div>}
+                <div className="glass-card">
+                    <h3 style={{ marginTop: '0px', marginBottom: '1rem', display:'flex', alignItems:'center', gap:'10px' }}>
+                        <Icons.Github /> Train on GitHub Repo
+                    </h3>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <input 
+                            type="text" 
+                            placeholder="username/repo" 
+                            value={githubUrl}
+                            onChange={(e) => setGithubUrl(e.target.value)}
+                            style={{ flex: 1, padding: '10px 16px', borderRadius: '6px', border: '1px solid #333', background: 'rgba(0,0,0,0.3)', color: 'white', outline: 'none' }}
+                        />
+                        <button className="btn-primary" style={{height:'40px'}} onClick={handleTrainGithub}>Train AI</button>
+                    </div>
                 </div>
-              </div>
-              
-              <div className="editor-window" style={{ flex: '4', minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', borderTop: '1px solid #27272a' }}>
-                <div className="window-header" style={{ background:'#0f172a', color:'#60a5fa', flexShrink: 0 }}><span>AI Notes</span></div>
-                <div style={{ 
-                  flex: 1, 
-                  padding: '1rem', 
-                  color: '#94a3b8', 
-                  fontSize: '0.85rem', 
-                  whiteSpace: 'pre-wrap', 
-                  overflowY: 'auto', 
-                  lineHeight: '1.6' 
-                }}>
-                  {explanation}
-                </div>
-              </div>
 
+                {uploadStatus && (
+                    <div style={{ padding: '1rem', background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.2)', borderRadius: '6px', color: '#4ade80', fontSize: '0.9rem' }}>
+                        {uploadStatus}
+                    </div>
+                )}
             </div>
-          </div>
-          
-          <div style={{ flexShrink: 0 }}>
-            <button className="btn-primary" onClick={handleRefactor} disabled={loading} style={{ marginTop: 0, width: '100%' }}>
-              {loading ? 'Refactoring Code...' : 'Run Refactor Analysis'}
-            </button>
-          </div>
-        </div>
+        )}
+
+        {/* VIEW 3: PROJECT FILES (Fetching Only) */}
+        {activeTab === 'files' && (
+            <div className="fade-in" style={{ padding: '3rem', maxWidth: '800px', margin: '0 auto', width: '100%', overflowY: 'auto', height: '100vh' }}>
+                <h2 style={{ marginBottom: '0.5rem', fontSize:'1.8rem', letterSpacing:'-0.02em' }}>Project Files</h2>
+                <p style={{ color: '#737373', marginBottom: '2.5rem' }}>Browse files and load them into the workbench.</p>
+                
+                <div className="glass-card">
+                    <h3 style={{ marginTop: '0px', marginBottom: '1rem', display:'flex', alignItems:'center', gap:'10px' }}>
+                        <Icons.Upload /> Open Project (ZIP)
+                    </h3>
+                    <input type="file" onChange={handleFetchZipFiles} accept=".zip" style={{ color: '#a1a1aa', fontSize: '0.9rem' }} />
+                </div>
+
+                <div className="glass-card">
+                    <h3 style={{ marginTop: '0px', marginBottom: '1rem', display:'flex', alignItems:'center', gap:'10px' }}>
+                        <Icons.Github /> Open GitHub Repo
+                    </h3>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <input 
+                            type="text" 
+                            placeholder="username/repo" 
+                            value={filesUrl}
+                            onChange={(e) => setFilesUrl(e.target.value)}
+                            style={{ flex: 1, padding: '10px 16px', borderRadius: '6px', border: '1px solid #333', background: 'rgba(0,0,0,0.3)', color: 'white', outline: 'none' }}
+                        />
+                        <button className="btn-primary" style={{height:'40px'}} onClick={handleFetchGithubFiles}>Fetch Files</button>
+                    </div>
+                </div>
+
+                {uploadStatus && (
+                     <div style={{ padding: '1rem', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', borderRadius: '6px', color: '#60a5fa', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+                        {uploadStatus}
+                    </div>
+                )}
+
+                {/* PROJECT EXPLORER */}
+                {projectFiles.length > 0 && (
+                    <div style={{ marginTop: '2rem' }}>
+                        <h3 style={{ marginBottom: '1rem', fontSize:'1.2rem' }}>📂 Explorer</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' }}>
+                            {projectFiles.map((file, idx) => (
+                                <div key={idx} onClick={() => loadFileToWorkbench(file.content)}
+                                    className="glass-card"
+                                    style={{ 
+                                        padding: '1rem', 
+                                        cursor: 'pointer', 
+                                        display:'flex', 
+                                        alignItems:'center', 
+                                        gap:'10px',
+                                        border: '1px solid #333',
+                                        transition: 'all 0.2s',
+                                        marginBottom: 0
+                                    }}
+                                    onMouseOver={e => {e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.transform = 'translateY(-2px)'}}
+                                    onMouseOut={e => {e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.transform = 'translateY(0)'}}
+                                >
+                                    <div style={{color:'#3b82f6'}}><Icons.File /></div>
+                                    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.85rem', color:'#e4e4e7' }}>
+                                        {file.name}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+        )}
+
+        {/* VIEW 4: SETTINGS */}
+        {activeTab === 'personalization' && (
+            <div className="fade-in" style={{ padding: '3rem', maxWidth: '800px', margin: '0 auto', width: '100%' }}>
+                <h2 style={{ marginBottom: '0.5rem', fontSize:'1.8rem', letterSpacing:'-0.02em' }}>Settings</h2>
+                <p style={{ color: '#737373', marginBottom: '2.5rem' }}>Customize how the AI interprets your code.</p>
+                
+                <div className="glass-card" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                    <div>
+                        <h3 style={{fontSize:'1rem', marginBottom:'4px', marginTop:'0px'}}>RAG (Context Awareness)</h3>
+                        <p style={{ color: '#737373', fontSize:'0.85rem', margin:0 }}>Use trained knowledge base for refactoring.</p>
+                    </div>
+                    <label className="switch" style={{position:'relative', display:'inline-block', width:'46px', height:'24px'}}>
+                        <input type="checkbox" checked={useRAG} onChange={(e) => setUseRAG(e.target.checked)} style={{opacity:0, width:0, height:0}} />
+                        <span style={{position:'absolute', cursor:'pointer', top:0, left:0, right:0, bottom:0, background: useRAG ? '#3b82f6' : '#333', borderRadius:'34px', transition:'.4s'}}></span>
+                        <span style={{position:'absolute', height:'18px', width:'18px', left:'3px', bottom:'3px', background:'white', borderRadius:'50%', transition:'.4s', transform: useRAG ? 'translateX(22px)' : 'translateX(0)'}}></span>
+                    </label>
+                </div>
+
+                <div className="glass-card" style={{ padding: '1.25rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', alignItems: 'center' }}>
+                        <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600 }}>Manual Style Rules</h3>
+                        <span style={{ 
+                            fontSize: '0.7rem', 
+                            fontWeight: 600, 
+                            color: isStyleSaved ? '#4ade80' : '#facc15', 
+                            background: isStyleSaved ? 'rgba(74, 222, 128, 0.1)' : 'rgba(250, 204, 21, 0.1)', 
+                            padding: '2px 8px', 
+                            borderRadius: '4px',
+                            letterSpacing: '0.05em'
+                        }}>
+                            {isStyleSaved ? 'SYNCED' : 'SAVING...'}
+                        </span>
+                    </div>
+
+                    <textarea 
+                        value={customStyle}
+                        onChange={handleStyleChange}
+                        placeholder="Ex: Always use snake_case. Add comments for every function..."
+                        spellCheck="false"
+                        style={{
+                            width: '96.5%', 
+                            height: '140px', 
+                            background: 'rgba(0,0,0,0.4)', 
+                            border: '1px solid #333', 
+                            color: '#e4e4e7',
+                            borderRadius: '8px', 
+                            padding: '12px', 
+                            fontSize: '0.85rem',
+                            resize: 'none',
+                            outline: 'none',
+                            transition: 'border-color 0.2s'
+                        }}
+                        onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                        onBlur={(e) => e.target.style.borderColor = '#333'}
+                    />
+                </div>
+            </div>
+        )}
       </div>
     </div>
   );
