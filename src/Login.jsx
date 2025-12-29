@@ -32,7 +32,7 @@ export default function Login() {
             required
           />
           <button disabled={loading} style={{ padding: '12px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
-            {loading ? 'Sending...' : 'Send Magic Link'}
+            {loading ? 'Sending...' : 'Send Login Link'}
           </button>
         </form>
       </div>
