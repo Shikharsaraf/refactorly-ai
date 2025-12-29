@@ -301,7 +301,7 @@ function App() {
                             {isStyleSaved ? 'SYNCED' : 'SAVING...'}
                         </span>
                     </div>
-                    <textarea value={customStyle} onChange={handleStyleChange} placeholder="Ex: Always use snake_case. Add comments for every function..." spellCheck="false" style={{ width: '100%', height: '140px', background: 'rgba(0,0,0,0.4)', border: '1px solid #333', color: '#e4e4e7', borderRadius: '8px', padding: '12px', fontSize: '0.85rem', resize: 'none', outline: 'none', transition: 'border-color 0.2s' }} onFocus={(e) => e.target.style.borderColor = '#3b82f6'} onBlur={(e) => e.target.style.borderColor = '#333'} />
+                    <textarea value={customStyle} onChange={handleStyleChange} placeholder="Ex: Always use snake_case. Add comments for every function..." spellCheck="false" style={{ width: '96.5%', height: '140px', background: 'rgba(0,0,0,0.4)', border: '1px solid #333', color: '#e4e4e7', borderRadius: '8px', padding: '12px', fontSize: '0.85rem', resize: 'none', outline: 'none', transition: 'border-color 0.2s' }} onFocus={(e) => e.target.style.borderColor = '#3b82f6'} onBlur={(e) => e.target.style.borderColor = '#333'} />
                 </div>
             </div>
         )}
