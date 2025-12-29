@@ -11,6 +11,7 @@ from rag_engine import brain
 import traceback
 from dotenv import load_dotenv
 from typing import Optional
+from pygments.lexers import guess_lexer, ClassNotFound
 
 load_dotenv()
 GENAI_API_KEY = os.getenv("GENAI_API_KEY")
@@ -34,12 +35,20 @@ except Exception as e:
 
 class RefactorRequest(BaseModel):
     code: str
+    language: str = "auto"
     use_personalization: bool = False
     custom_style: str = ""
     user_id: Optional[str] = None
 
 class GitHubRequest(BaseModel):
     repo_url: str
+
+def detect_language(code: str) -> str:
+    try:
+        lexer = guess_lexer(code)
+        return lexer.name.lower()
+    except ClassNotFound:
+        return "generic"
 
 @app.post("/ingest-github")
 async def ingest_github(request: GitHubRequest):
@@ -50,7 +59,6 @@ async def ingest_github(request: GitHubRequest):
         owner, repo = parts[-2], parts[-1]
         api_url = f"https://api.github.com/repos/{owner}/{repo}/contents"
         
-        print(f"Fetching GitHub for RAG: {api_url}")
         response = requests.get(api_url)
         if response.status_code != 200: 
             return {"error": f"GitHub API Error: {response.status_code}"}
@@ -59,7 +67,7 @@ async def ingest_github(request: GitHubRequest):
         count = 0
         
         for file in files[:15]: 
-            if file['type'] == 'file' and file['name'].endswith(('.py', '.js', '.tsx', '.java')):
+            if file['type'] == 'file' and file['name'].endswith(('.py', '.js', '.tsx', '.java', '.cpp', '.cs', '.go')):
                 try:
                     code_content = requests.get(file['download_url']).text
                     if len(code_content) > 10: 
@@ -68,9 +76,7 @@ async def ingest_github(request: GitHubRequest):
                 except: continue
                     
         return {"message": f"Synced {count} files from GitHub."}
-
     except Exception as e:
-        print(f"GitHub Error: {e}")
         return {"error": str(e)}
 
 @app.post("/fetch-github-files")
@@ -87,7 +93,7 @@ async def fetch_github_files(request: GitHubRequest):
         
         file_list = []
         for file in response.json()[:15]: 
-            if file['type'] == 'file' and file['name'].endswith(('.py', '.js', '.tsx', '.jsx', '.java', '.cpp')):
+            if file['type'] == 'file' and file['name'].endswith(('.py', '.js', '.tsx', '.jsx', '.java', '.cpp', '.cs', '.go')):
                 try:
                     content = requests.get(file['download_url']).text
                     file_list.append({"name": file['name'], "content": content})
@@ -109,7 +115,7 @@ async def upload_knowledge(file: UploadFile = File(...)):
         count = 0
         for root, dirs, files in os.walk(extract_path):
             for file_name in files:
-                if file_name.endswith((".py", ".js", ".tsx", ".java")):
+                if file_name.endswith((".py", ".js", ".tsx", ".java", ".cpp", ".cs", ".go")):
                     try:
                         with open(os.path.join(root, file_name), "r", encoding="utf-8") as f:
                             content = f.read()
@@ -122,7 +128,6 @@ async def upload_knowledge(file: UploadFile = File(...)):
         if os.path.exists(extract_path): shutil.rmtree(extract_path)
         return {"message": f"Learned from {count} files."}
     except Exception as e:
-        print(f"Upload Error: {e}")
         return {"error": str(e)}
 
 @app.post("/fetch-zip-files")
@@ -140,7 +145,7 @@ async def fetch_zip_files(file: UploadFile = File(...)):
             
         for root, dirs, files in os.walk(extract_path):
             for file_name in files:
-                if file_name.endswith(('.py', '.js', '.tsx', '.jsx', '.java', '.cpp')):
+                if file_name.endswith(('.py', '.js', '.tsx', '.jsx', '.java', '.cpp', '.cs', '.go')):
                     try:
                         with open(os.path.join(root, file_name), "r", encoding="utf-8") as f:
                             file_list.append({"name": file_name, "content": f.read()})
@@ -150,43 +155,41 @@ async def fetch_zip_files(file: UploadFile = File(...)):
         if os.path.exists(extract_path): shutil.rmtree(extract_path)
         
         return {"files": file_list[:20]} 
-        
     except Exception as e:
         return {"error": str(e)}
 
 @app.post("/refactor")
 async def refactor_code(request: RefactorRequest):
-    print(f"Refactor Request. User: {request.user_id}, Personalization: {request.use_personalization}")
-    
+    target_language = request.language
+    if target_language == "auto":
+        target_language = detect_language(request.code)
+
     style_context = ""
     
     if request.custom_style:
-        style_context += "\n\n### CRITICAL: USER'S MANUAL STYLE RULES ###\n"
-        style_context += f"{request.custom_style}\n"
-        style_context += "STRICTLY FOLLOW the rules above.\n"
+        style_context += f"\n\n### USER'S MANUAL {target_language.upper()} STYLE RULES ###\n{request.custom_style}\n"
 
     if request.use_personalization:
         try:
             past_examples = brain.recall_style(request.code)
             if past_examples:
-                style_context += "\n\n### CRITICAL: USER CODING STYLE EXAMPLES ###\n"
-                style_context += "Adopt the coding style found in these examples.\n"
+                style_context += f"\n\n### USER CODING STYLE EXAMPLES ({target_language.upper()}) ###\n"
                 for i, example in enumerate(past_examples):
                     style_context += f"\n--- EXAMPLE {i+1} ---\n{example[:1500]}\n"
         except Exception as e:
             print(f"RAG Error: {e}")
 
     prompt_parts = [
-        "You are an expert Senior Developer. Refactor the following code.",
+        f"You are an expert Senior {target_language.capitalize()} Developer. Refactor the following code.",
+        f"Strictly follow idiomatic {target_language} patterns and best practices.",
         style_context,
         "\nRULES:",
         "1. Output strictly in the requested format.",
-        "2. Explanation must be a clean bulleted list.",
-        "3. PUT A BLANK LINE BETWEEN EVERY BULLET POINT.", 
+        "2. Explanation must be a clean bulleted list with blank lines between them.",
         "\nRESPONSE FORMAT:",
-        "1. Refactored Code (Clean, NO markdown backticks like ```python).",
+        "1. Refactored Code (NO backticks).",
         "2. <<SPLIT>>",
-        "3. Explanation (Bullet Points with empty lines between them).",
+        "3. Explanation.",
         "\nCODE TO REFACTOR:",
         request.code 
     ]
@@ -200,21 +203,20 @@ async def refactor_code(request: RefactorRequest):
         )
         
         full_text = response.text
-        refactored_code = full_text
-        explanation = "Refactoring complete."
+        refactored_code, explanation = full_text, "Refactoring complete."
 
         if "<<SPLIT>>" in full_text:
             parts = full_text.split("<<SPLIT>>")
-            
-            refactored_code = parts[0].strip().replace("```python", "").replace("```", "").strip()
-            
-            raw_explanation = parts[1].strip().replace("**", "")
-            explanation = raw_explanation.replace("\n*", "\n\n*").replace("\n-", "\n\n-")
+            refactored_code = parts[0].strip().replace("```" + target_language, "").replace("```", "").strip()
+            explanation = parts[1].strip().replace("**", "").replace("\n*", "\n\n*").replace("\n-", "\n\n-")
 
-        return {"refactored_code": refactored_code, "explanation": explanation}
+        return {
+            "refactored_code": refactored_code, 
+            "explanation": explanation,
+            "detected_language": target_language
+        }
             
     except Exception as e:
-        print("!!! CRITICAL GENERATION ERROR !!!")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"AI Generation Failed: {str(e)}")
 

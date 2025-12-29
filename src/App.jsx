@@ -28,6 +28,7 @@ function App() {
   const [customStyle, setCustomStyle] = useState("");
   const [isStyleSaved, setIsStyleSaved] = useState(true);
   const [useRAG, setUseRAG] = useState(true);
+  const [detectedLang, setDetectedLang] = useState("");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -64,6 +65,7 @@ function App() {
       setActiveTab('workbench');
       setResultCode(""); 
       setExplanation("");
+      setDetectedLang("");
   };
 
   const handleTrainGithub = async () => {
@@ -132,15 +134,25 @@ function App() {
     setLoading(true);
     setResultCode(""); 
     setExplanation("");
+    setDetectedLang("");
     try {
       const response = await fetch("http://localhost:8000/refactor", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: inputCode, custom_style: customStyle, use_personalization: useRAG, user_id: session?.user?.id }), 
+        body: JSON.stringify({ 
+            code: inputCode, 
+            custom_style: customStyle, 
+            use_personalization: useRAG, 
+            user_id: session?.user?.id,
+            language: "auto"
+        }), 
       });
       const data = await response.json();
       setResultCode(data.refactored_code);
       setExplanation(data.explanation);
+      if (data.detected_language) {
+          setDetectedLang(data.detected_language);
+      }
     } catch (error) { setExplanation("Error: Check Backend Connection"); } finally { setLoading(false); }
   };
 
@@ -187,10 +199,17 @@ function App() {
                     <div className="editor-window">
                          <div className="window-header">
                             <div className="window-dots"><div className="dot red"></div><div className="dot yellow"></div><div className="dot green"></div></div>
-                            <div className="window-title">output.py</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <div className="window-title">output.py</div>
+                                {detectedLang && (
+                                    <span style={{ fontSize: '10px', background: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa', padding: '2px 8px', borderRadius: '10px', border: '1px solid rgba(59, 130, 246, 0.3)', textTransform: 'uppercase', fontWeight: 'bold' }}>
+                                        {detectedLang}
+                                    </span>
+                                )}
+                            </div>
                          </div>
                          {resultCode ? (
-                            <SyntaxHighlighter language="python" style={vscDarkPlus} customStyle={{margin:0, height:'100%', background: 'transparent', fontSize:'13px'}}>
+                            <SyntaxHighlighter language={detectedLang || "python"} style={vscDarkPlus} customStyle={{margin:0, height:'100%', background: 'transparent', fontSize:'13px'}}>
                               {resultCode}
                             </SyntaxHighlighter>
                          ) : <div style={{padding:'24px', color:'#333', fontStyle:'italic', fontFamily:'Inter'}}>Waiting for input...</div>}
